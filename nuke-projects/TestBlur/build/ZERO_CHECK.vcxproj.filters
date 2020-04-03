@@ -1,0 +1,13 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="14.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <CustomBuild Include="D:\Work\nuke-projects\TestBlur\build\CMakeFiles\cedb427eee12b625ac16302bebf12c2a\generate.stamp.rule">
+      <Filter>CMake Rules</Filter>
+    </CustomBuild>
+  </ItemGroup>
+  <ItemGroup>
+    <Filter Include="CMake Rules">
+      <UniqueIdentifier>{4EE8167B-9E13-3059-8288-25460F02A1FA}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+</Project>

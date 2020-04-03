@@ -1,0 +1,3 @@
+D:/Work/nuke-projects/TestDoubleImage/build/CMakeFiles/DoubleImage.dir
+D:/Work/nuke-projects/TestDoubleImage/build/CMakeFiles/ALL_BUILD.dir
+D:/Work/nuke-projects/TestDoubleImage/build/CMakeFiles/ZERO_CHECK.dir
