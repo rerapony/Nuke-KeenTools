@@ -63,7 +63,6 @@ public:
 		GeometryList other_out;
 		input1()->get_geometry(other_scene, other_out);
 
-		// вообще и там, и там должен быть один объект...
 		unsigned int objs = out.objects();
 		unsigned int other_objs = other_out.objects();
 		unsigned int min_objs = MIN(objs, other_objs);
@@ -71,7 +70,6 @@ public:
 		for (unsigned int i = 0; i < min_objs; ++i)
 		{
 			PointList* points = out.writable_points(i);
-			// вылетает здесь: unable to read memory
 			PointList* other_points = other_out.writable_points(i);
 
 			const unsigned n = points->size();
