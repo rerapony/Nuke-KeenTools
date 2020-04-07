@@ -57,32 +57,30 @@ public:
 		input0()->get_geometry(scene, out);
 
 		if (Op::input(1) == nullptr)
-			return;
+			error("Can't work with one geometry.");
 		
 		Scene other_scene;
-		GeometryList other_out;
-		input1()->get_geometry(other_scene, other_out);
+		GeometryList other;
+		input1()->get_geometry(other_scene, other);
 
-		// вообще и там, и там должен быть один объект...
 		unsigned int objs = out.objects();
-		unsigned int other_objs = other_out.objects();
-		unsigned int min_objs = MIN(objs, other_objs);
+		unsigned int other_objs = other.objects();
+		assert(objs == other_objs);
 		
-		for (unsigned int i = 0; i < min_objs; ++i)
+		for (unsigned int i = 0; i < objs; ++i)
 		{
 			PointList* points = out.writable_points(i);
-			// вылетает здесь: unable to read memory
-			PointList* other_points = other_out.writable_points(i);
+			GeoInfo& other_info = other[i];
+			const PointList* other_points = other_info.point_list();
 
 			const unsigned n = points->size();
 			const unsigned other_n = other_points->size();
 
-			if (n != other_n)
-				return;
+			assert(n == other_n);
 			
 			for (unsigned j = 0; j < n; j++) {
 				Vector3& v = (*points)[j];
-				Vector3& other_v = (*other_points)[j];
+				const Vector3& other_v = (*other_points)[j];
 				v.x = (v.x + other_v.x) / 2;
 				v.y = (v.y + other_v.y) / 2;
 				v.z = (v.z + other_v.z) / 2;
