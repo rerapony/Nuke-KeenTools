@@ -21,7 +21,7 @@ protected:
 
 		this_op->validate(for_real);
 		other_op->validate(for_real);
-		
+
 		GeoOp::_validate(for_real);
 	}
 
@@ -58,7 +58,7 @@ public:
 
 		if (Op::input(1) == nullptr)
 			error("Can't work with one geometry.");
-		
+
 		Scene other_scene;
 		GeometryList other;
 		input1()->get_geometry(other_scene, other);
@@ -66,7 +66,9 @@ public:
 		unsigned int objs = out.objects();
 		unsigned int other_objs = other.objects();
 		assert(objs == other_objs);
-		
+
+		std::cout << objs;
+
 		for (unsigned int i = 0; i < objs; ++i)
 		{
 			PointList* points = out.writable_points(i);
@@ -76,8 +78,10 @@ public:
 			const unsigned n = points->size();
 			const unsigned other_n = other_points->size();
 
+			std::cout << n;
+
 			assert(n == other_n);
-			
+
 			for (unsigned j = 0; j < n; j++) {
 				Vector3& v = (*points)[j];
 				const Vector3& other_v = (*other_points)[j];
