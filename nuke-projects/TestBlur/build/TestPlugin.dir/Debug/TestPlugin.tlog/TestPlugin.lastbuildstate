@@ -1,2 +1,2 @@
 #TargetFrameworkVersion=v4.0:PlatformToolSet=v140:EnableManagedIncrementalBuild=false:VCToolArchitecture=Native32Bit:WindowsTargetPlatformVersion=10.0.14393.0
-Debug|Win32|D:\Work\nuke-projects\TestBlur\build\|
+Debug|x64|D:\Work\nuke-practice\nuke-projects\TestBlur\build\|

@@ -1,4 +1,4 @@
-# Install script for directory: D:/Work/nuke-projects/TestBlur/nuke-practice
+# Install script for directory: D:/Work/nuke-practice/nuke-projects/TestBlur/project
 
 # Set the install prefix
 if(NOT DEFINED CMAKE_INSTALL_PREFIX)
@@ -40,5 +40,5 @@ endif()
 
 string(REPLACE ";" "\n" CMAKE_INSTALL_MANIFEST_CONTENT
        "${CMAKE_INSTALL_MANIFEST_FILES}")
-file(WRITE "D:/Work/nuke-projects/TestBlur/build/${CMAKE_INSTALL_MANIFEST}"
+file(WRITE "D:/Work/nuke-practice/nuke-projects/TestBlur/build/${CMAKE_INSTALL_MANIFEST}"
      "${CMAKE_INSTALL_MANIFEST_CONTENT}")

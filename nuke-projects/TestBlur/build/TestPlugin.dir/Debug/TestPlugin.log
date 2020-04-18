@@ -1,3 +1,14 @@
-﻿  Building Custom Rule D:/Work/nuke-projects/TestBlur/nuke-practice/CMakeLists.txt
+﻿  Building Custom Rule D:/Work/nuke-practice/nuke-projects/TestBlur/project/CMakeLists.txt
   TestPlugin.cpp
-D:\Work\nuke-projects\TestBlur\nuke-practice\src\TestPlugin.cpp(8): fatal error C1083: Cannot open include file: 'DDImage/Iop.h': No such file or directory
+D:\Work\nuke-practice\nuke-deps\include\Build/OS/fnWindows.h(119): warning C4996: 'GetVersionExA': was declared deprecated
+  C:\Program Files (x86)\Windows Kits\10\Include\10.0.14393.0\um\sysinfoapi.h(442): note: see declaration of 'GetVersionExA'
+C:\Program Files (x86)\Microsoft Visual Studio 14.0\VC\include\xutility(2372): warning C4996: 'std::copy::_Unchecked_iterators::_Deprecate': Call to 'std::copy' with parameters that may be unsafe - this call relies on the caller to check that the passed values are correct. To disable this warning, use -D_SCL_SECURE_NO_WARNINGS. See documentation on how to use Visual C++ 'Checked Iterators'
+  C:\Program Files (x86)\Microsoft Visual Studio 14.0\VC\include\xutility(2372): note: see declaration of 'std::copy::_Unchecked_iterators::_Deprecate'
+  D:\Work\nuke-practice\nuke-deps\include\DDImage/Matrix4.h(641): note: see reference to function template instantiation '_OutIt *std::copy<const float*,double*>(_InIt,_InIt,_OutIt)' being compiled
+          with
+          [
+              _OutIt=double *,
+              _InIt=const float *
+          ]
+  TestPlugin.vcxproj -> D:\Work\nuke-practice\nuke-projects\TestBlur\build\Debug\TestPlugin.dll
+  TestPlugin.vcxproj -> D:/Work/nuke-practice/nuke-projects/TestBlur/build/Debug/TestPlugin.pdb (Full PDB)
