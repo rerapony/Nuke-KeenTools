@@ -35,4 +35,6 @@ public:
 	void get_geometry_hash() override;
 
 	void geometry_engine(Scene& scene, GeometryList& out) override;
+
+	void knobs(Knob_Callback f) override;
 };

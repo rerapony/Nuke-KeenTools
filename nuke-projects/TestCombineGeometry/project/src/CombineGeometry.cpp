@@ -20,7 +20,9 @@ const char* CombineGeometry::node_help() const
 	return HELP;
 }
 
-CombineGeometry::CombineGeometry(Node* node) : GeoOp(node) {}
+CombineGeometry::CombineGeometry(Node* node) : GeoOp(node) {
+	_param = 0.5f;
+}
 
 int CombineGeometry::minimum_inputs() const 
 {
@@ -70,11 +72,17 @@ void CombineGeometry::geometry_engine(Scene& scene, GeometryList& out)
 		for (unsigned j = 0; j < n; j++) {
 			Vector3& v = (*points)[j];
 			const Vector3& other_v = (*other_points)[j];
-			v.x = (v.x + other_v.x) / 2;
-			v.y = (v.y + other_v.y) / 2;
-			v.z = (v.z + other_v.z) / 2;
+			v.x = _param * (v.x + other_v.x);
+			v.y = _param * (v.y + other_v.y);
+			v.z = _param * (v.z + other_v.z);
 		}
 	}
+}
+
+void CombineGeometry::knobs(Knob_Callback f)
+{
+	Float_knob(f, &_param, "combination param", "combination param");
+	SetRange(f, 0, 2);
 }
 
 static Op* build(Node* node)
