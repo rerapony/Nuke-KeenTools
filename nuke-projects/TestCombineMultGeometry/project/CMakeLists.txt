@@ -5,6 +5,11 @@ set(NUKE_DEPS_PATH "D:/Work/nuke-practice/nuke-deps" CACHE PATH "path to nuke in
 
 
 link_directories("${NUKE_DEPS_PATH}")
+set(CMAKE_CXX_FLAGS_DEBUG ${CMAKE_CXX_FLAGS_RELWITHDEBINFO})
+string(REGEX REPLACE "/O[0-9]" "/Od" CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG}")
+string(REGEX REPLACE "/Ob[0-9]" "/Ob0" CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG}")
+string(REGEX REPLACE "-O[0-9]" "-O0" CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG}")
+string(REGEX REPLACE "NDEBUG" "" CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG}")
 add_library(CombineMultGeometry SHARED src/CombineMultGeometry.cpp)
 target_include_directories(CombineMultGeometry PRIVATE "${NUKE_DEPS_PATH}/include")
 target_link_libraries(CombineMultGeometry DDImage glew32)

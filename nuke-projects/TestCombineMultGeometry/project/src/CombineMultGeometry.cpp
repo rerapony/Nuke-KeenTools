@@ -4,14 +4,12 @@
 void CombineMultGeometry::_validate(bool for_real)
 {
 	Op* this_op = Op::input(0);
-	Op* other_op = Op::input(1);
 
 	this_op->validate(for_real);
-	other_op->validate(for_real);
 	
-	for (int i = 2; i < N; i++)
+	for (int i = 1; i < N; i++)
 	{
-		if (Op::input(i))
+		if (Op::input(i) != nullptr)
 		{
 			Op* temp = Op::input(i);
 			temp->validate(for_real);
@@ -38,7 +36,7 @@ CombineMultGeometry::CombineMultGeometry(Node* node) : GeoOp(node) {
 	}
 }
 
-int CombineMultGeometry::minimum_inputs() const 
+int CombineMultGeometry::minimum_inputs() const
 {
 	return 2;
 }
@@ -56,54 +54,57 @@ void CombineMultGeometry::get_geometry_hash()
 void CombineMultGeometry::geometry_engine(Scene& scene, GeometryList& out)
 {
 	input0()->get_geometry(scene, out);
-	// processing first input as base case
-	unsigned int objs = out.objects();
-	for (unsigned int j = 0; j < objs; ++j)
-	{
-		PointList* points = out.writable_points(j);
-		const unsigned n = points->size();
 
-		for (unsigned k = 0; k < n; k++) {
-			Vector3& v = (*points)[k];
-			v.x *= _param[0];
-			v.y *= _param[0];
-			v.z *= _param[0];
-		}
-	}
-
-	
 	if (Op::input(1) == nullptr)
 		error("Can't work with one geometry.");
-	
-	for (int i = 1; i < N; ++i)
-	{
-		// ran out of valid inputs
-		if (Op::input(i) == nullptr)
-			break;
 
+	unsigned int objs = out.objects();
+	
+	for (unsigned int i = 0; i < objs; ++i)
+	{
+		PointList* points = out.writable_points(i);
+
+		const unsigned n = points->size();
+
+		for (unsigned j = 0; j < n; j++) {
+			Vector3& v = (*points)[j];
+			
+			v.x = _param[0] * v.x;
+			v.y = _param[0] * v.y;
+			v.z = _param[0] * v.z;
+		}
+	}
+	
+	for (int geo_id = 1; geo_id < N; ++geo_id)
+	{
+		if (Op::input(geo_id) == nullptr)
+			break;
+		
 		Scene other_scene;
 		GeometryList other;
-		input(i)->get_geometry(other_scene, other);
-		
+		input(geo_id)->get_geometry(other_scene, other);
+
+		unsigned int objs = out.objects();
 		unsigned int other_objs = other.objects();
 		assert(objs == other_objs);
 
-		for (unsigned int j = 0; j < objs; ++j)
+		for (unsigned int i = 0; i < objs; ++i)
 		{
-			PointList* points = out.writable_points(j);
-			GeoInfo& other_info = other[j];
+			PointList* points = out.writable_points(i);
+			GeoInfo& other_info = other[i];
 			const PointList* other_points = other_info.point_list();
 
 			const unsigned n = points->size();
 			const unsigned other_n = other_points->size();
+
 			assert(n == other_n);
 
-			for (unsigned k = 0; k < n; k++) {
-				Vector3& v = (*points)[k];
-				const Vector3& other_v = (*other_points)[k];
-				v.x += _param[i] * other_v.x;
-				v.y += _param[i] * other_v.y;
-				v.z += _param[i] * other_v.z;
+			for (unsigned j = 0; j < n; j++) {
+				Vector3& v = (*points)[j];
+				const Vector3& other_v = (*other_points)[j];
+				v.x += _param[geo_id] * other_v.x;
+				v.y += _param[geo_id] * other_v.y;
+				v.z += _param[geo_id] * other_v.z;
 			}
 		}
 	}
@@ -112,7 +113,7 @@ void CombineMultGeometry::geometry_engine(Scene& scene, GeometryList& out)
 void CombineMultGeometry::knobs(Knob_Callback f)
 {
 	MultiFloat_knob(f, _param, N,"combination param", "combination param");
-	SetRange(f, 0, 2);
+	SetRange(f, 0, 1);
 }
 
 static Op* build(Node* node)
