@@ -1,5 +1,7 @@
 #include "CombineMultGeometry.hpp"
 
+#include <vector>
+
 void CombineMultGeometry::_validate(bool for_real)
 {
 	Op* this_op = Op::input(0);
@@ -14,7 +16,6 @@ void CombineMultGeometry::_validate(bool for_real)
 			temp->validate(for_real);
 		}
 	}
-	
 	
 	GeoOp::_validate(for_real);
 }
@@ -57,6 +58,43 @@ void CombineMultGeometry::geometry_engine(Scene& scene, GeometryList& out)
 	input0()->get_geometry(scene, out);
 
 	unsigned int objs = out.objects();
+
+	std::vector<std::vector<Vector3>> neutral_points;
+
+	for (unsigned int i = 0; i < objs; ++i)
+	{
+		GeoInfo& info = out[i];
+		const PointList* my_points = info.point_list();
+		const unsigned n = my_points->size();
+
+		std::vector<Vector3> my_vec;
+		
+		for (unsigned j = 0; j < n; j++) {
+			Vector3 vec;
+			const Vector3 v = (*my_points)[j];
+			vec.x = v.x;
+			vec.y = v.y;
+			vec.z = v.z;
+			my_vec.push_back(vec);
+		}
+		neutral_points.push_back(my_vec);
+	}
+
+	for (unsigned int i = 0; i < objs; ++i)
+	{
+		PointList* points = out.writable_points(i);
+
+		const unsigned n = points->size();
+
+		for (unsigned j = 0; j < n; j++) {
+			Vector3& v = (*points)[j];
+			const Vector3 orig_vec = neutral_points[i][j];
+
+			v.x = orig_vec.x;
+			v.y = orig_vec.y;
+			v.z = orig_vec.z;
+		}
+	}
 	
 	for (int geo_id = 1; geo_id < N+1; ++geo_id)
 	{
@@ -67,7 +105,6 @@ void CombineMultGeometry::geometry_engine(Scene& scene, GeometryList& out)
 		GeometryList other;
 		input(geo_id)->get_geometry(other_scene, other);
 
-		unsigned int objs = out.objects();
 		unsigned int other_objs = other.objects();
 		assert(objs == other_objs);
 
@@ -79,15 +116,16 @@ void CombineMultGeometry::geometry_engine(Scene& scene, GeometryList& out)
 
 			const unsigned n = points->size();
 			const unsigned other_n = other_points->size();
-
 			assert(n == other_n);
-
+			
 			for (unsigned j = 0; j < n; j++) {
 				Vector3& v = (*points)[j];
 				const Vector3& other_v = (*other_points)[j];
-				v.x += _param[geo_id] * (other_v.x - v.x);
-				v.y += _param[geo_id] * (other_v.y - v.y);
-				v.z += _param[geo_id] * (other_v.z - v.z);
+				const Vector3 orig_vec = neutral_points[i][j];
+				
+				v.x += _param[geo_id] * (other_v.x - orig_vec.x);
+				v.y += _param[geo_id] * (other_v.y - orig_vec.y);
+				v.z += _param[geo_id] * (other_v.z - orig_vec.z);
 			}
 		}
 	}
