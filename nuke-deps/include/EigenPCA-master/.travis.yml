@@ -1,0 +1,13 @@
+language: cpp
+
+compiler:
+  - g++
+
+before_install:
+  - sudo apt-get install libeigen3-dev
+
+script: g++ -I/usr/include/eigen3 -c pca.cpp 
+
+branches:
+  only:
+    - master
