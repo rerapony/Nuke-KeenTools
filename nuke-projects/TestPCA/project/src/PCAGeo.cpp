@@ -63,13 +63,13 @@ void PCAGeo::geometry_engine(Scene& scene, GeometryList& out) {
 
 	GeoInfo*  info_to_copy = nullptr;
 
-	for (int geo_id = 0; geo_id < N+1; geo_id++)
+	for (int geo_id = 0; geo_id < N + 1; geo_id++)
 	{
 		if (Op::input(geo_id) == nullptr)
 			break;
 
 		std::vector<float> model_vec;
-		
+
 		Scene other_scene;
 		GeometryList other;
 		input(geo_id)->get_geometry(other_scene, other);
@@ -82,7 +82,7 @@ void PCAGeo::geometry_engine(Scene& scene, GeometryList& out) {
 			{
 				info_to_copy = &other[0];
 			}
-			
+
 			GeoInfo& info = other[obj_id];
 			const PointList* points = info.point_list();
 
@@ -103,7 +103,7 @@ void PCAGeo::geometry_engine(Scene& scene, GeometryList& out) {
 	}
 
 	Pca *pca = new Pca();
-	int init_result = pca->Calculate(result_vec, total_n, total_m); 
+	int init_result = pca->Calculate(result_vec, total_n, total_m);
 
 	assert(init_result == 0);
 
@@ -114,16 +114,22 @@ void PCAGeo::geometry_engine(Scene& scene, GeometryList& out) {
 	std::vector<float> mean = pca->mean();
 
 	assert(n_pca > 1);
-	float c_sum = cum_props[0];
-	int chosen_n = 1; // at least one components (first in order) must be taken
-	for (int i = 1; i < n_pca; i++)
+	float c_sum = 0;
+	int chosen_n = min(N_pca, n_pca);
+	for (int i = 0; i < chosen_n; i++)
 	{
 		c_sum += cum_props[i];
-		if (c_sum <= var_threshold && i < N_pca)
+	}
+	
+	for (int i = chosen_n; i < n_pca; i++)
+	{
+		c_sum += cum_props[i];
+		if (c_sum < var_threshold)
 		{
 			chosen_n++;
 		}
 	}
+	
 	n_pca = chosen_n;
 	std::vector<std::vector<float>> result_points(n_pca);
 	// initialize result models
@@ -175,7 +181,7 @@ void PCAGeo::knobs(Knob_Callback f)
 	Bool_knob(f, &pretty_show, "show PCA components in a row", "Pretty Show");
 	Float_knob(f, &d_x, "delta x", "Delta X");
 	SetRange(f, 0, 10);
-	Int_knob(f, &N_pca, "first N PCA to be shown", "N_PCA");
+	Int_knob(f, &N_pca, "minimum number of PCA to be shown", "N_PCA");
 	SetRange(f, 0, N);
 	Float_knob(f, &var_threshold, "variance threshold", "Variance Threshold");
 	SetRange(f, 0, 1);

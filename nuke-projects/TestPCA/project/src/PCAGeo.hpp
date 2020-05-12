@@ -45,7 +45,7 @@ class PCAGeo : public GeoOp
 {
 private:
 	const static int N = 100; // max number of inputs
-	int N_pca; // only first N_pca ordered PCA components will be shown
+	int N_pca; // min number of PCA to be shown
 	bool pretty_show; // should position_delta be applied to all the models for a good exposure
 	float var_threshold; // only PCA with cumulative variance proportion >= threshold will be loaded
 	float d_x; // delta to be used in pretty show
