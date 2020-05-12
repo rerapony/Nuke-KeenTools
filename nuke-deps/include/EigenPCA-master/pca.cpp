@@ -1,5 +1,9 @@
-#define NODEBUG
+п»ї#define NODEBUG
 #include <iostream>
+#ifdef DEBUG
+#include <iterator>
+#endif
+#include "D:/Work/nuke-practice/nuke-deps/include/eigen-3.3.7/Eigen/SVD"
 #include "pca.h"
 
 using namespace std;
@@ -35,48 +39,45 @@ int Pca::Calculate(vector<float> &x,
 	{
 		mean_vec.push_back(mean_vector(i, 0));
 	}
-	
+
 	for (unsigned int i = 0; i < _ncols; ++i) {
 		_xXf.col(i) -= VectorXf::Constant(_nrows, mean_vector(i));
 	}
-	MatrixXf cov;
+	float denom = static_cast<float>((_nrows > 1) ? _nrows - 1 : 1);
 
-	// вот тут проблемы
-	cov = (1.0 / (_nrows-1)) * _xXf.adjoint() * _xXf;
+	JacobiSVD<MatrixXf> svd(_xXf, ComputeThinV);
+	VectorXf eigen_singular_values = svd.singularValues();
+	VectorXf eigen_values = eigen_singular_values.array().square();
+	
+	for (unsigned int i = 0; i < eigen_values.size(); ++i) {
+		pca_vars.push_back(eigen_values(i)/denom);
+	}
+
+	MatrixXf eigen_vectors = svd.matrixV();
 
 #ifdef DEBUG
-	cout << "Covariance matrix:" << endl << cov << endl;
+	cout << "SVD values: " << endl << eigen_values << endl;
+	cout << "Eigen vectors:" << endl << svd.matrixV() << endl;
 #endif
 	
-	EigenSolver<MatrixXf> solver(cov);
+	auto eig_rows = eigen_vectors.rows();
+	auto eig_cols = eigen_vectors.cols();
 
-#ifdef DEBUG
-	cout << "Eigenvectors:" << endl << solver.eigenvectors() << endl;
-	cout << "Eigenvalues:" << endl << solver.eigenvalues() << endl;
-#endif
-
-	auto eigen_vecs = solver.eigenvectors();
-	auto eigen_vals = solver.eigenvalues();
+	pca_rows = eig_cols;
+	pca_cols = eig_rows;
 	
-	for (int i = 0; i < _ncols; i++)
+	for (int i = 0; i < eig_cols; i++)
 	{
 		std::vector<float> pca_row;
-		for (int j = 0; j < _ncols; j++)
+		for (int j = 0; j < eig_rows; j++)
 		{
-			pca_row.push_back(eigen_vecs(j, i).real());
+			pca_row.push_back(eigen_vectors(j, i));
 		}
 		pca_vecs.push_back(pca_row);
 	}
-
-	pca_rows = _ncols;
-	pca_cols = _ncols;
-
-	for (int i = 0; i < _ncols; i++)
-	{
-		pca_vars.push_back(eigen_vals(i, 0).real());
-	}
+	
 	return 0;
-	}
+}
 
 std::vector<std::vector<float>> Pca::pca_components()
 {
@@ -99,10 +100,10 @@ std::pair<int, int> Pca::pca_size()
 }
 
 Pca::Pca(void) {
-  _nrows      = 0;
-  _ncols      = 0;
+	_nrows = 0;
+	_ncols = 0;
 }
-Pca::~Pca(void) { 
-  _xXf.resize(0, 0);
-  _x.clear();
+Pca::~Pca(void) {
+	_xXf.resize(0, 0);
+	_x.clear();
 }

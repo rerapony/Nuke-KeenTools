@@ -62,6 +62,8 @@ void PCAGeo::geometry_engine(Scene& scene, GeometryList& out) {
 	unsigned int total_m = 0;
 	unsigned points_n = 0;
 
+	GeoInfo*  info_to_copy;
+
 	for (int geo_id = 0; geo_id < N+1; geo_id++)
 	{
 		if (Op::input(geo_id) == nullptr)
@@ -76,6 +78,12 @@ void PCAGeo::geometry_engine(Scene& scene, GeometryList& out) {
 		unsigned int objs = other.objects();
 
 		for (int obj_id = 0; obj_id < objs; obj_id++) {
+
+			if (obj_id == 0)
+			{
+				info_to_copy = &other[0];
+			}
+			
 			GeoInfo& info = other[obj_id];
 			const PointList* points = info.point_list();
 
@@ -100,12 +108,44 @@ void PCAGeo::geometry_engine(Scene& scene, GeometryList& out) {
 
 	assert(init_result == 0);
 
-	auto n_pca = pca->pca_size().first;
-	auto lengths = pca->pca_variance();
-	auto components = pca->pca_components();
-	auto mean = pca->mean();
+	assert(init_result == 0);
 
+	int n_pca = pca->pca_size().first;
+	std::vector<float> lengths = pca->pca_variance();
+	std::vector<std::vector<float>> components = pca->pca_components();
+	std::vector<float> mean = pca->mean();
 
+	std::vector<std::vector<float>> result_points(n_pca);
+	
+	for (int i = 0; i < n_pca; i++)
+	{
+		std::vector<float> extreme_point = (2 * sqrt(lengths[i]))*components[i];
+		const std::vector<float> res = pca->mean() + extreme_point;
+		result_points[i] = res;
+	}
+	
+	out.delete_objects();
+	Vector3 pos_delta(2, 0, 0);
+	
+	for (int pca_id = 0; pca_id < n_pca; pca_id++)
+	{
+		out.add_object(pca_id);
+		out[pca_id].copy(info_to_copy);
+		PointList* points = out.writable_points(pca_id);
+
+		points_n = points->size();
+		std::vector<float> current_obj = result_points[pca_id];
+		
+		for (unsigned j = 0; j < points_n; j++)
+		{
+			Vector3& v = (*points)[j];
+
+			v.x = current_obj[3*j] + pca_id*pos_delta.x;
+			v.y = current_obj[3*j+1] + pca_id*pos_delta.y;
+			v.z = current_obj[3*j+2] + pca_id*pos_delta.z;
+		}
+		
+	}
 	
 	delete pca;
 }
