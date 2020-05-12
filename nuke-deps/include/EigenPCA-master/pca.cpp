@@ -9,6 +9,11 @@
 using namespace std;
 using namespace Eigen;
 
+bool sortinrev(const pair<float, int> &a, const pair<float, int> &b)
+{
+	return (a.first > b.first);
+}
+
 int Pca::Calculate(vector<float> &x,
 	const unsigned int &nrows,
 	const unsigned int &ncols) {
@@ -53,28 +58,52 @@ int Pca::Calculate(vector<float> &x,
 		pca_vars.push_back(eigen_values(i)/denom);
 	}
 
-	MatrixXf eigen_vectors = svd.matrixV();
+	vector<pair<float, int>> ep;
+	for (unsigned int i = 0; i < eigen_values.size(); ++i) {
+		ep.push_back(make_pair(pca_vars[i], i));
+	}
 
-#ifdef DEBUG
-	cout << "SVD values: " << endl << eigen_values << endl;
-	cout << "Eigen vectors:" << endl << svd.matrixV() << endl;
-#endif
+	sort(ep.begin(), ep.end(), sortinrev); // Sort in descending order
 	
+	pca_vars.clear();
+	for (unsigned int i = 0; i < eigen_values.size(); ++i) {
+		pca_vars.push_back(ep[i].first);
+	}
+
+	float sum_var = 0;
+	for (auto& var : pca_vars)
+		sum_var += var;
+	// proportions of variance
+	for (unsigned int i = 0; i < eigen_values.size(); ++i) {
+		var_props.push_back(pca_vars[i] / sum_var);
+	}
+	MatrixXf eigen_vectors = svd.matrixV();
 	auto eig_rows = eigen_vectors.rows();
 	auto eig_cols = eigen_vectors.cols();
-
+	// V is transposed
 	pca_rows = eig_cols;
 	pca_cols = eig_rows;
+	// sort eigenvectors
+	MatrixXf eigen_vectors_sorted(eig_rows, eig_cols);
+	for (unsigned int i = 0; i < eigen_values.size(); i++) {
+		int col_id = ep[i].second;
+		eigen_vectors_sorted.col(i) = eigen_vectors.col(col_id);
+	}
 	
 	for (int i = 0; i < eig_cols; i++)
 	{
 		std::vector<float> pca_row;
 		for (int j = 0; j < eig_rows; j++)
 		{
-			pca_row.push_back(eigen_vectors(j, i));
+			pca_row.push_back(eigen_vectors_sorted(j, i));
 		}
 		pca_vecs.push_back(pca_row);
 	}
+
+#ifdef DEBUG
+	cout << "Eigen values: " << endl << eigen_values << endl;
+	cout << "Eigen vectors:" << endl << svd.matrixV() << endl;
+#endif
 	
 	return 0;
 }
@@ -97,6 +126,11 @@ std::vector<float> Pca::mean()
 std::pair<int, int> Pca::pca_size()
 {
 	return std::make_pair(pca_rows, pca_cols);
+}
+
+std::vector<float> Pca::var_proportions()
+{
+	return var_props;
 }
 
 Pca::Pca(void) {

@@ -1,11 +1,19 @@
 ﻿  test.cpp
-d:\work\nuke-practice\nuke-deps\include\eigenpca-master\pca.cpp(38): warning C4018: '<': signed/unsigned mismatch
-d:\work\nuke-practice\nuke-deps\include\eigenpca-master\pca.cpp(68): warning C4018: '<': signed/unsigned mismatch
-d:\work\nuke-practice\nuke-deps\include\eigenpca-master\pca.cpp(71): warning C4018: '<': signed/unsigned mismatch
+d:\work\nuke-practice\nuke-deps\include\eigenpca-master\pca.cpp(43): warning C4018: '<': signed/unsigned mismatch
+d:\work\nuke-practice\nuke-deps\include\eigenpca-master\pca.cpp(84): warning C4244: '=': conversion from 'Eigen::EigenBase<Derived>::Index' to 'int', possible loss of data
+          with
+          [
+              Derived=Eigen::Matrix<float,-1,-1,0,-1,-1>
+          ]
+d:\work\nuke-practice\nuke-deps\include\eigenpca-master\pca.cpp(85): warning C4244: '=': conversion from 'Eigen::EigenBase<Derived>::Index' to 'int', possible loss of data
+          with
+          [
+              Derived=Eigen::Matrix<float,-1,-1,0,-1,-1>
+          ]
 d:\work\nuke-practice\nuke-projects\pca_checker\pca_checker\test.cpp(48): warning C4838: conversion from 'double' to 'float' requires a narrowing conversion
 d:\work\nuke-practice\nuke-projects\pca_checker\pca_checker\test.cpp(48): warning C4305: 'initializing': truncation from 'double' to 'float'
 c:\program files (x86)\microsoft visual studio 14.0\vc\include\utility(200): warning C4244: 'initializing': conversion from 'int' to 'float', possible loss of data
-  d:\work\nuke-practice\nuke-projects\pca_checker\pca_checker\test.cpp(81): note: see reference to function template instantiation 'std::pair<float,float>::pair<int,int,void,0>(std::pair<int,int> &&) noexcept' being compiled
-  d:\work\nuke-practice\nuke-projects\pca_checker\pca_checker\test.cpp(81): note: see reference to function template instantiation 'std::pair<float,float>::pair<int,int,void,0>(std::pair<int,int> &&) noexcept' being compiled
+  d:\work\nuke-practice\nuke-projects\pca_checker\pca_checker\test.cpp(88): note: see reference to function template instantiation 'std::pair<float,float>::pair<int,int,void,0>(std::pair<int,int> &&) noexcept' being compiled
+  d:\work\nuke-practice\nuke-projects\pca_checker\pca_checker\test.cpp(88): note: see reference to function template instantiation 'std::pair<float,float>::pair<int,int,void,0>(std::pair<int,int> &&) noexcept' being compiled
   pca_checker.vcxproj -> D:\Work\nuke-practice\nuke-projects\pca_checker\x64\Debug\pca_checker.exe
   pca_checker.vcxproj -> D:\Work\nuke-practice\nuke-projects\pca_checker\x64\Debug\pca_checker.pdb (Partial PDB)

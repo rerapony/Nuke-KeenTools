@@ -72,6 +72,13 @@ int main()
 	}
 	cout << endl;
 
+	cout << "Variance proportions" << endl;
+	for (auto& val : pca->var_proportions())
+	{
+		cout << val << " ";
+	}
+	cout << endl;
+	
 	cout << "Variances" << endl;
 	for (auto& val : pca->pca_variance())
 	{

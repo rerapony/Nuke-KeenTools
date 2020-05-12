@@ -15,6 +15,7 @@ private:
 	std::vector<std::vector<float>> pca_vecs;
 	std::vector<float> mean_vec;
 	std::vector<float> pca_vars;
+	std::vector<float> var_props;
 	int pca_rows;
 	int pca_cols;
 
@@ -53,6 +54,9 @@ public:
 	//! return pca components size
 	std::pair<int, int> pca_size();
 
+	//! return proportions of variances
+	std::vector<float> var_proportions();
+	
 	//! Class constructor
 	Pca(void);
 	//! Class destructor

@@ -6,11 +6,7 @@
 
 void PCAGeo::_validate(bool for_real)
 {
-	Op* this_op = Op::input(0);
-
-	this_op->validate(for_real);
-	
-	for (int i = 1; i < N+1; i++)
+	for (int i = 0; i < N; i++)
 	{
 		if (Op::input(i) != nullptr)
 		{
@@ -31,28 +27,31 @@ const char* PCAGeo::node_help() const
 	return HELP;
 }
 
-PCAGeo::PCAGeo(Node* node) : GeoOp(node) {
-	for (int i = 0; i < N; ++i)
-	{
-		_param[i] = 0.5f;
-	}
+PCAGeo::PCAGeo(Node* node) : GeoOp(node)
+{
+	N_pca = N; // only first N_pca ordered PCA components will be shown
+	pretty_show = false; // should position_delta be applied to all the models for a good exposure
+	var_threshold = 0.9f; // only PCA with cumulative variance proportion >= threshold will be loaded
+	d_x = 2;
 }
 
 int PCAGeo::minimum_inputs() const
 {
-	return 1;
+	return 2;
 }
 
 int PCAGeo::maximum_inputs() const 
 {
-	return N+1;
+	return N;
 }
 
 void PCAGeo::get_geometry_hash()
 {
 	GeoOp::get_geometry_hash();
-
-	geo_hash[Group_Points].append(_param, N);
+	geo_hash[Group_Points].append(N_pca);
+	geo_hash[Group_Points].append(pretty_show);
+	geo_hash[Group_Points].append(var_threshold);
+	geo_hash[Group_Points].append(d_x);
 }
 
 void PCAGeo::geometry_engine(Scene& scene, GeometryList& out) {
@@ -62,7 +61,7 @@ void PCAGeo::geometry_engine(Scene& scene, GeometryList& out) {
 	unsigned int total_m = 0;
 	unsigned points_n = 0;
 
-	GeoInfo*  info_to_copy;
+	GeoInfo*  info_to_copy = nullptr;
 
 	for (int geo_id = 0; geo_id < N+1; geo_id++)
 	{
@@ -79,7 +78,7 @@ void PCAGeo::geometry_engine(Scene& scene, GeometryList& out) {
 
 		for (int obj_id = 0; obj_id < objs; obj_id++) {
 
-			if (obj_id == 0)
+			if (geo_id == 0 && obj_id == 0)
 			{
 				info_to_copy = &other[0];
 			}
@@ -108,24 +107,35 @@ void PCAGeo::geometry_engine(Scene& scene, GeometryList& out) {
 
 	assert(init_result == 0);
 
-	assert(init_result == 0);
-
 	int n_pca = pca->pca_size().first;
 	std::vector<float> lengths = pca->pca_variance();
 	std::vector<std::vector<float>> components = pca->pca_components();
+	std::vector<float> cum_props = pca->var_proportions();
 	std::vector<float> mean = pca->mean();
 
+	assert(n_pca > 1);
+	float c_sum = cum_props[0];
+	int chosen_n = 1; // at least one components (first in order) must be taken
+	for (int i = 1; i < n_pca; i++)
+	{
+		c_sum += cum_props[i];
+		if (c_sum <= var_threshold && i < N_pca)
+		{
+			chosen_n++;
+		}
+	}
+	n_pca = chosen_n;
 	std::vector<std::vector<float>> result_points(n_pca);
-	
+	// initialize result models
 	for (int i = 0; i < n_pca; i++)
 	{
-		std::vector<float> extreme_point = (2 * sqrt(lengths[i]))*components[i];
+		std::vector<float> extreme_point = sqrt(lengths[i])*components[i];
 		const std::vector<float> res = pca->mean() + extreme_point;
 		result_points[i] = res;
 	}
 	
 	out.delete_objects();
-	Vector3 pos_delta(2, 0, 0);
+	int mid_object = n_pca / 2;
 	
 	for (int pca_id = 0; pca_id < n_pca; pca_id++)
 	{
@@ -139,12 +149,22 @@ void PCAGeo::geometry_engine(Scene& scene, GeometryList& out) {
 		for (unsigned j = 0; j < points_n; j++)
 		{
 			Vector3& v = (*points)[j];
-
-			v.x = current_obj[3*j] + pca_id*pos_delta.x;
-			v.y = current_obj[3*j+1] + pca_id*pos_delta.y;
-			v.z = current_obj[3*j+2] + pca_id*pos_delta.z;
+			v.x = current_obj[3 * j];
+			v.y = current_obj[3 * j + 1];
+			v.z = current_obj[3 * j + 2];
+			
+			// row aligning
+			if (pretty_show)
+			{
+				if (pca_id <= mid_object)
+				{
+					v.x -= (mid_object - pca_id)*d_x;
+				} else
+				{
+					v.x += (pca_id - mid_object)*d_x;
+				}
+			}
 		}
-		
 	}
 	
 	delete pca;
@@ -152,7 +172,12 @@ void PCAGeo::geometry_engine(Scene& scene, GeometryList& out) {
 
 void PCAGeo::knobs(Knob_Callback f)
 {
-	MultiFloat_knob(f, _param, N,"combination param", "combination param");
+	Bool_knob(f, &pretty_show, "show PCA components in a row", "Pretty Show");
+	Float_knob(f, &d_x, "delta x", "Delta X");
+	SetRange(f, 0, 10);
+	Int_knob(f, &N_pca, "first N PCA to be shown", "N_PCA");
+	SetRange(f, 0, N);
+	Float_knob(f, &var_threshold, "variance threshold", "Variance Threshold");
 	SetRange(f, 0, 1);
 }
 

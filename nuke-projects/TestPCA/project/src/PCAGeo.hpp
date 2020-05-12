@@ -43,8 +43,12 @@ std::vector<T> operator*(const float& a, const std::vector<T>& b)
 
 class PCAGeo : public GeoOp
 {
-	static const int N = 10;
-	float _param[N];
+private:
+	const static int N = 100; // max number of inputs
+	int N_pca; // only first N_pca ordered PCA components will be shown
+	bool pretty_show; // should position_delta be applied to all the models for a good exposure
+	float var_threshold; // only PCA with cumulative variance proportion >= threshold will be loaded
+	float d_x; // delta to be used in pretty show
 	
 protected:
 	void _validate(bool for_real) override;
