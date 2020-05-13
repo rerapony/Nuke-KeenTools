@@ -35,5 +35,7 @@ public:
 
 	void geometry_engine(Scene& scene, GeometryList& out) override;
 
+	static void make_means(std::vector<Vector3>& mean_vec, GeometryList& geo_list);
+	
 	void knobs(Knob_Callback f) override;
 };
