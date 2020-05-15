@@ -21,7 +21,7 @@ const char* CombineMultPCA::node_help() const
 CombineMultPCA::CombineMultPCA(Node* node) : GeoOp(node) {
 	for (int i = 0; i < N; ++i)
 	{
-		_param[i] = 0.5f;
+		_param[i] = 0;
 	}
 }
 
@@ -30,7 +30,7 @@ int CombineMultPCA::minimum_inputs() const
 	return 1;
 }
 
-int CombineMultPCA::maximum_inputs() const 
+int CombineMultPCA::maximum_inputs() const
 {
 	return 1;
 }
@@ -46,33 +46,15 @@ void CombineMultPCA::geometry_engine(Scene& scene, GeometryList& out)
 {
 	Scene other_scene;
 	GeometryList other;
-	
-	input0()->get_geometry(other_scene, other);
 
-	const unsigned int objs = other.objects();
-	assert(objs <= N);
+	input0()->get_geometry(other_scene, other);
+	const unsigned int points_n = other[0].point_list()->size();
+	std::vector<Vector3> mean_points(points_n, Vector3(0, 0, 0));
 	
-	GeoInfo* info_to_copy = &other[0];
-	const unsigned int points_n = info_to_copy->point_list()->size();
-	std::vector<Vector3> mean_points(points_n, Vector3(0, 0,0));
 	// average vectors
 	make_means(mean_points, other);
 
-	out.delete_objects();
-	out.add_object(0);
-	out[0].copy(info_to_copy);
-	PointList* out_points = out.writable_points(0);
-	
-	for (unsigned int obj_id = 0; obj_id < objs; obj_id++) {
-		GeoInfo& other_info = other[obj_id];
-		const PointList* other_points = other_info.point_list();
-		assert(points_n == other_points->size());
-		for (unsigned int j = 0; j < points_n; j++) {
-			const Vector3 v = (*other_points)[j];
-			Vector3& out_v = (*out_points)[j];
-			out_v = mean_points[j] + (v - mean_points[j])*_param[obj_id];
-		}
-	}
+	combine_pca(mean_points, out, other);
 }
 
 void CombineMultPCA::make_means(std::vector<Vector3>& mean_vec, GeometryList& geo_list)
@@ -91,16 +73,46 @@ void CombineMultPCA::make_means(std::vector<Vector3>& mean_vec, GeometryList& ge
 			mean_vec[j] += v;
 		}
 	}
-	
+
 	// average points
 	for (unsigned int j = 0; j < n; j++) {
 		mean_vec[j] /= (float)n_obj;
 	}
 }
 
+void CombineMultPCA::combine_pca(std::vector<Vector3>& mean_vec, GeometryList& out, GeometryList& in)
+{
+	GeoInfo* info_to_copy = &in[0];
+	const unsigned int points_n = info_to_copy->point_list()->size();
+	
+	out.delete_objects();
+	out.add_object(0);
+	out[0].copy(info_to_copy);
+	PointList* out_points = out.writable_points(0);
+	const unsigned int objs = in.objects();
+	assert(objs <= N);
+	
+	for (unsigned int j = 0; j < points_n; j++) {
+		Vector3& out_v = (*out_points)[j];
+		out_v = mean_vec[j];
+	}
+
+	for (unsigned int obj_id = 0; obj_id < objs; obj_id++) {
+		GeoInfo& other_info = in[obj_id];
+		const PointList* other_points = other_info.point_list();
+		assert(points_n == other_points->size());
+
+		for (unsigned int j = 0; j < points_n; j++) {
+			const Vector3 v = (*other_points)[j];
+			Vector3& out_v = (*out_points)[j];
+			out_v += (v - mean_vec[j])*_param[obj_id];
+		}
+	}
+}
+
 void CombineMultPCA::knobs(Knob_Callback f)
 {
-	MultiFloat_knob(f, _param, N,"combination param", "combination param");
+	MultiFloat_knob(f, _param, N, "combination param", "combination param");
 	SetRange(f, 0, 10);
 }
 

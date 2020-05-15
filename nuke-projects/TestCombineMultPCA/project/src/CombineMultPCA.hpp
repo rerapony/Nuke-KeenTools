@@ -17,7 +17,7 @@ class CombineMultPCA : public GeoOp
 {
 	static const int N = 10;
 	float _param[N];
-	
+
 protected:
 	void _validate(bool for_real) override;
 
@@ -36,6 +36,8 @@ public:
 	void geometry_engine(Scene& scene, GeometryList& out) override;
 
 	static void make_means(std::vector<Vector3>& mean_vec, GeometryList& geo_list);
+
+	void combine_pca(std::vector<Vector3>& mean_vec, GeometryList& out, GeometryList& in);
 	
 	void knobs(Knob_Callback f) override;
 };

@@ -2,7 +2,6 @@
 
 #include <vector>
 #include <cmath>
-#include "EigenPCA-master/pca.cpp"
 
 void PCAGeo::_validate(bool for_real)
 {
@@ -29,9 +28,9 @@ const char* PCAGeo::node_help() const
 
 PCAGeo::PCAGeo(Node* node) : GeoOp(node)
 {
-	N_pca = N; // only first N_pca ordered PCA components will be shown
+	N_pca = 1; // only first N_pca ordered PCA components will be shown
 	pretty_show = false; // should position_delta be applied to all the models for a good exposure
-	var_threshold = 0.9f; // only PCA with cumulative variance proportion >= threshold will be loaded
+	var_threshold = 0.2f; // only PCA with cumulative variance proportion >= threshold will be loaded
 	d_x = 2;
 }
 
@@ -61,8 +60,26 @@ void PCAGeo::geometry_engine(Scene& scene, GeometryList& out) {
 	unsigned int total_m = 0;
 	unsigned points_n = 0;
 
-	GeoInfo*  info_to_copy = nullptr;
+	Scene other_scene;
+	GeometryList other;
+	input(0)->get_geometry(other_scene, other);
 
+	prepare_data(result_vec, total_n, total_m);
+	
+	Pca *pca = new Pca();
+	const int init_result = pca->Calculate(result_vec, total_n, total_m);
+
+	assert(init_result == 0);
+
+	calculate_extreme_points(pca, out, &other[0]);
+	
+	delete pca;
+}
+
+void PCAGeo::prepare_data(std::vector<float>& data_vec, unsigned int& n, unsigned int& m) const
+{
+	unsigned int points_n = 0;
+	
 	for (int geo_id = 0; geo_id < N + 1; geo_id++)
 	{
 		if (Op::input(geo_id) == nullptr)
@@ -74,14 +91,9 @@ void PCAGeo::geometry_engine(Scene& scene, GeometryList& out) {
 		GeometryList other;
 		input(geo_id)->get_geometry(other_scene, other);
 
-		unsigned int objs = other.objects();
+		const unsigned int objs = other.objects();
 
 		for (int obj_id = 0; obj_id < objs; obj_id++) {
-
-			if (geo_id == 0 && obj_id == 0)
-			{
-				info_to_copy = &other[0];
-			}
 
 			GeoInfo& info = other[obj_id];
 			const PointList* points = info.point_list();
@@ -96,41 +108,31 @@ void PCAGeo::geometry_engine(Scene& scene, GeometryList& out) {
 				model_vec.push_back(v.z);
 			}
 
-			total_m = model_vec.size();
-			result_vec.insert(result_vec.end(), model_vec.begin(), model_vec.end());
-			total_n++;
+			m = model_vec.size();
+			data_vec.insert(data_vec.end(), model_vec.begin(), model_vec.end());
+			n++;
 		}
 	}
+}
 
-	Pca *pca = new Pca();
-	int init_result = pca->Calculate(result_vec, total_n, total_m);
-
-	assert(init_result == 0);
-
-	int n_pca = pca->pca_size().first;
+void PCAGeo::calculate_extreme_points(Pca* pca, GeometryList& out, GeoInfo*  info_to_copy) const
+{
 	std::vector<float> lengths = pca->pca_variance();
 	std::vector<std::vector<float>> components = pca->pca_components();
 	std::vector<float> cum_props = pca->var_proportions();
 	std::vector<float> mean = pca->mean();
+	int n_pca = pca->pca_size().first;
 
-	assert(n_pca > 1);
-	float c_sum = 0;
-	int chosen_n = min(N_pca, n_pca);
-	for (int i = 0; i < chosen_n; i++)
+	int thresh_i = N_pca >= 0 ? min(N_pca, n_pca) : 0;
+	for ( ; thresh_i < n_pca; thresh_i++)
 	{
-		c_sum += cum_props[i];
-	}
-	
-	for (int i = chosen_n; i < n_pca; i++)
-	{
-		c_sum += cum_props[i];
-		if (c_sum < var_threshold)
+		if (cum_props[thresh_i] < var_threshold)
 		{
-			chosen_n++;
+			break;
 		}
 	}
-	
-	n_pca = chosen_n;
+
+	n_pca = thresh_i;
 	std::vector<std::vector<float>> result_points(n_pca);
 	// initialize result models
 	for (int i = 0; i < n_pca; i++)
@@ -139,41 +141,40 @@ void PCAGeo::geometry_engine(Scene& scene, GeometryList& out) {
 		const std::vector<float> res = pca->mean() + extreme_point;
 		result_points[i] = res;
 	}
-	
+
 	out.delete_objects();
-	int mid_object = n_pca / 2;
-	
+	const int mid_object = n_pca / 2;
+
 	for (int pca_id = 0; pca_id < n_pca; pca_id++)
 	{
 		out.add_object(pca_id);
 		out[pca_id].copy(info_to_copy);
 		PointList* points = out.writable_points(pca_id);
 
-		points_n = points->size();
+		const unsigned int points_n = points->size();
 		std::vector<float> current_obj = result_points[pca_id];
-		
+
 		for (unsigned j = 0; j < points_n; j++)
 		{
 			Vector3& v = (*points)[j];
 			v.x = current_obj[3 * j];
 			v.y = current_obj[3 * j + 1];
 			v.z = current_obj[3 * j + 2];
-			
+
 			// row aligning
 			if (pretty_show)
-			{
+			{	// small changes in face?
 				if (pca_id <= mid_object)
 				{
 					v.x -= (mid_object - pca_id)*d_x;
-				} else
+				}
+				else
 				{
 					v.x += (pca_id - mid_object)*d_x;
 				}
 			}
 		}
 	}
-	
-	delete pca;
 }
 
 void PCAGeo::knobs(Knob_Callback f)

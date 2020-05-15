@@ -4,7 +4,7 @@
 #include "DDImage/Scene.h"
 #include "DDImage/Knobs.h"
 #include "DDImage/ViewFrustum.h"
-
+#include "EigenPCA-master/pca.cpp"
 #include <cassert>
 
 using namespace DD::Image;
@@ -44,10 +44,10 @@ std::vector<T> operator*(const float& a, const std::vector<T>& b)
 class PCAGeo : public GeoOp
 {
 private:
-	const static int N = 100; // max number of inputs
+	const static int N = 10; // max number of inputs
 	int N_pca; // min number of PCA to be shown
 	bool pretty_show; // should position_delta be applied to all the models for a good exposure
-	float var_threshold; // only PCA with cumulative variance proportion >= threshold will be loaded
+	float var_threshold; // only PCA with variance proportion >= threshold will be loaded
 	float d_x; // delta to be used in pretty show
 	
 protected:
@@ -68,4 +68,8 @@ public:
 	void geometry_engine(Scene& scene, GeometryList& out) override;
 
 	void knobs(Knob_Callback f) override;
+
+	void prepare_data(std::vector<float>& data_vec, unsigned int& n, unsigned int& m) const;
+
+	void calculate_extreme_points(Pca* pca, GeometryList& out, GeoInfo* info_to_copy) const;
 };
