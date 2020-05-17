@@ -1,8 +1,5 @@
 ﻿#define NODEBUG
 #include <iostream>
-#ifdef DEBUG
-#include <iterator>
-#endif
 #include "D:/Work/nuke-practice/nuke-deps/include/eigen-3.3.7/Eigen/SVD"
 #include "pca.h"
 
@@ -16,7 +13,8 @@ bool sortinrev(const pair<float, int> &a, const pair<float, int> &b)
 
 int Pca::Calculate(vector<float> &x,
 	const unsigned int &nrows,
-	const unsigned int &ncols) {
+	const unsigned int &ncols)
+{
 	_ncols = ncols;
 	_nrows = nrows;
 	if (x.size() != _nrows*_ncols) {
@@ -133,10 +131,36 @@ std::vector<float> Pca::var_proportions()
 	return var_props;
 }
 
-Pca::Pca(void) {
+Pca::Pca(void)
+{
 	_nrows = 0;
 	_ncols = 0;
 }
+
+std::vector<std::vector<float>> Pca::calculate_extreme_points(int pca_n)
+{
+    std::vector<std::vector<float>> result_points(pca_n);
+
+    assert(!pca_vecs.empty());
+
+    const int component_size = pca_vecs[0].size();
+
+    for (int i = 0; i < pca_n; i++)
+    {
+        std::vector<float> extreme_point(component_size);
+        std::vector<float> cur_pca = pca_vecs[i];
+        float k = sqrt(pca_vars[i]);
+        for (int j = 0; j < component_size; j++)
+        {
+            extreme_point[j] = mean_vec[j] + k * cur_pca[j];
+        }
+
+        result_points[i] = extreme_point;
+    }
+    return result_points;
+}
+
+
 Pca::~Pca(void) {
 	_xXf.resize(0, 0);
 	_x.clear();

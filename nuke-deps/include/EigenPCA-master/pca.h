@@ -56,6 +56,9 @@ public:
 
 	//! return proportions of variances
 	std::vector<float> var_proportions();
+
+    //! return extreme points of pca components
+    std::vector<std::vector<float>> Pca::calculate_extreme_points(int pca_n);
 	
 	//! Class constructor
 	Pca(void);

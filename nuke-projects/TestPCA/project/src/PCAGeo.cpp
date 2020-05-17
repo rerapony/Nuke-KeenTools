@@ -1,196 +1,204 @@
 #include "PCAGeo.hpp"
-
 #include <vector>
-#include <cmath>
+
+using namespace DD::Image;
+
+namespace {
+    const char* const CLASS = "PCAGeo";
+    const char* const HELP = "Combine geometries of two objects";
+}
+
 
 void PCAGeo::_validate(bool for_real)
 {
-	for (int i = 0; i < N; i++)
-	{
-		if (Op::input(i) != nullptr)
-		{
-			Op* temp = Op::input(i);
-			temp->validate(for_real);
-		}
-	}
-	
-	GeoOp::_validate(for_real);
+    int current_inputs_n = 0;
+    for (int i = 0; i < max_inputs_N; i++)
+    {
+        if (Op::input(i) != nullptr)
+        {
+            Op::input(i)->validate(for_real);
+            current_inputs_n++;
+        }
+    }
+    inputs_N = current_inputs_n;
+    GeoOp::_validate(for_real);
 }
 
 const char* PCAGeo::Class() const
 {
-	return CLASS;
-}
-const char* PCAGeo::node_help() const
-{
-	return HELP;
+    return CLASS;
 }
 
-PCAGeo::PCAGeo(Node* node) : GeoOp(node)
+const char* PCAGeo::node_help() const
 {
-	N_pca = 1; // only first N_pca ordered PCA components will be shown
-	pretty_show = false; // should position_delta be applied to all the models for a good exposure
-	var_threshold = 0.2f; // only PCA with cumulative variance proportion >= threshold will be loaded
-	d_x = 2;
+    return HELP;
 }
+
+PCAGeo::PCAGeo(Node* node):
+    GeoOp(node),
+    max_inputs_N(10),
+    inputs_N(0),
+    points_N(0),
+    objs_N(0),
+    mid_obj_id(0),
+    min_pca_N(1),
+    pretty_show(false),
+    var_threshold(0.2),
+    d_x(2) {}
 
 int PCAGeo::minimum_inputs() const
 {
-	return 2;
+    return 2;
 }
 
 int PCAGeo::maximum_inputs() const 
 {
-	return N;
+    return max_inputs_N;
 }
 
 void PCAGeo::get_geometry_hash()
 {
-	GeoOp::get_geometry_hash();
-	geo_hash[Group_Points].append(N_pca);
-	geo_hash[Group_Points].append(pretty_show);
-	geo_hash[Group_Points].append(var_threshold);
-	geo_hash[Group_Points].append(d_x);
+    GeoOp::get_geometry_hash();
+    geo_hash[Group_Points].append(min_pca_N);
+    geo_hash[Group_Points].append(pretty_show);
+    geo_hash[Group_Points].append(var_threshold);
+    geo_hash[Group_Points].append(d_x);
 }
 
-void PCAGeo::geometry_engine(Scene& scene, GeometryList& out) {
-
-	std::vector<float> result_vec;
-	unsigned int total_n = 0;
-	unsigned int total_m = 0;
-	unsigned points_n = 0;
-
-	Scene other_scene;
-	GeometryList other;
-	input(0)->get_geometry(other_scene, other);
-
-	prepare_data(result_vec, total_n, total_m);
-	
-	Pca *pca = new Pca();
-	const int init_result = pca->Calculate(result_vec, total_n, total_m);
-
-	assert(init_result == 0);
-
-	calculate_extreme_points(pca, out, &other[0]);
-	
-	delete pca;
-}
-
-void PCAGeo::prepare_data(std::vector<float>& data_vec, unsigned int& n, unsigned int& m) const
+void PCAGeo::geometry_engine(Scene& scene, GeometryList& out)
 {
-	unsigned int points_n = 0;
-	
-	for (int geo_id = 0; geo_id < N + 1; geo_id++)
-	{
-		if (Op::input(geo_id) == nullptr)
-			break;
+    GeometryList in;
+    {
+        Scene in_scene;
+        input(0)->get_geometry(in_scene, in);
+    }
+    objs_N = in.objects();
+    assert(objs_N > 0);
+    points_N = in[0].points();
 
-		std::vector<float> model_vec;
+    auto result_vec = prepare_data();
 
-		Scene other_scene;
-		GeometryList other;
-		input(geo_id)->get_geometry(other_scene, other);
+    Pca pca;
+    const int init_result = pca.Calculate(result_vec, inputs_N, objs_N * points_N * 3);
+    assert(init_result == 0);
 
-		const unsigned int objs = other.objects();
-
-		for (int obj_id = 0; obj_id < objs; obj_id++) {
-
-			GeoInfo& info = other[obj_id];
-			const PointList* points = info.point_list();
-
-			points_n = points->size();
-
-			for (unsigned j = 0; j < points_n; j++) {
-				const Vector3& v = (*points)[j];
-
-				model_vec.push_back(v.x);
-				model_vec.push_back(v.y);
-				model_vec.push_back(v.z);
-			}
-
-			m = model_vec.size();
-			data_vec.insert(data_vec.end(), model_vec.begin(), model_vec.end());
-			n++;
-		}
-	}
+    process_extreme_points(pca, out, &in[0]);
 }
 
-void PCAGeo::calculate_extreme_points(Pca* pca, GeometryList& out, GeoInfo*  info_to_copy) const
+std::vector<float> PCAGeo::prepare_data() const
 {
-	std::vector<float> lengths = pca->pca_variance();
-	std::vector<std::vector<float>> components = pca->pca_components();
-	std::vector<float> cum_props = pca->var_proportions();
-	std::vector<float> mean = pca->mean();
-	int n_pca = pca->pca_size().first;
+    std::vector<float> result_vec;
+    for (int geo_id = 0; geo_id < inputs_N; geo_id++)
+    {
+        GeometryList in;
+        {
+            Scene in_scene;
+            input(geo_id)->get_geometry(in_scene, in);
+        }
 
-	int thresh_i = N_pca >= 0 ? min(N_pca, n_pca) : 0;
-	for ( ; thresh_i < n_pca; thresh_i++)
-	{
-		if (cum_props[thresh_i] < var_threshold)
-		{
-			break;
-		}
-	}
+        for (unsigned int obj_id = 0; obj_id < objs_N; obj_id++) {
 
-	n_pca = thresh_i;
-	std::vector<std::vector<float>> result_points(n_pca);
-	// initialize result models
-	for (int i = 0; i < n_pca; i++)
-	{
-		std::vector<float> extreme_point = sqrt(lengths[i])*components[i];
-		const std::vector<float> res = pca->mean() + extreme_point;
-		result_points[i] = res;
-	}
+            GeoInfo& info = in[obj_id];
+            const PointList* points = info.point_list();
 
-	out.delete_objects();
-	const int mid_object = n_pca / 2;
+            for (unsigned int j = 0; j < points_N; j++) {
+                const Vector3& v = (*points)[j];
+                result_vec.push_back(v.x);
+                result_vec.push_back(v.y);
+                result_vec.push_back(v.z);
+            }
+        }
+    }
+    assert(result_vec.size() == inputs_N * objs_N * points_N * 3);
+    return result_vec;
+}
 
-	for (int pca_id = 0; pca_id < n_pca; pca_id++)
-	{
-		out.add_object(pca_id);
-		out[pca_id].copy(info_to_copy);
-		PointList* points = out.writable_points(pca_id);
+void PCAGeo::process_extreme_points(Pca& pca, GeometryList& out, GeoInfo*  info_to_copy)
+{
+    int pca_n = pca.pca_size().first;
+    int thresh_i = min_pca_N >= 0 ? min(min_pca_N, pca_n) : 0;
+    std::vector<float> cum_props = pca.var_proportions();
 
-		const unsigned int points_n = points->size();
-		std::vector<float> current_obj = result_points[pca_id];
+    for ( ; thresh_i < pca_n; thresh_i++)
+    {
+        if (cum_props[thresh_i] < var_threshold)
+        {
+            break;
+        }
+    }
+    pca_n = thresh_i;
+    mid_obj_id = pca_n / 2;
 
-		for (unsigned j = 0; j < points_n; j++)
-		{
-			Vector3& v = (*points)[j];
-			v.x = current_obj[3 * j];
-			v.y = current_obj[3 * j + 1];
-			v.z = current_obj[3 * j + 2];
+    out.delete_objects();
+    std::vector<float> mean = pca.mean();
+    write_neutral_model(mean, out, info_to_copy);
 
-			// row aligning
-			if (pretty_show)
-			{	// small changes in face?
-				if (pca_id <= mid_object)
-				{
-					v.x -= (mid_object - pca_id)*d_x;
-				}
-				else
-				{
-					v.x += (pca_id - mid_object)*d_x;
-				}
-			}
-		}
-	}
+    auto extreme_points = pca.calculate_extreme_points(pca_n);
+    write_pca_models(extreme_points, pca_n, out, info_to_copy);
+}
+
+void PCAGeo::write_neutral_model(std::vector<float>& mean, GeometryList& out, GeoInfo*  info) const
+{
+    out.add_object(0);
+    out[0].copy(info);
+    PointList* points = out.writable_points(0);
+
+    for (unsigned int j = 0; j < points_N; j++)
+    {
+        Vector3& v = (*points)[j];
+        v.x = mean[3 * j];
+        v.y = mean[3 * j + 1];
+        v.z = mean[3 * j + 2];
+    }
+
+    if (pretty_show) {
+        out[0].matrix.translate(mid_obj_id*d_x, 0, 0);
+    }
+}
+
+void PCAGeo::write_pca_models(
+    std::vector<std::vector<float>>& pca_points, 
+    int pca_n, 
+    GeometryList& out, 
+    GeoInfo* info) const
+{
+    for (int pca_id = 1; pca_id < pca_n+1; pca_id++)
+    {
+        out.add_object(pca_id);
+        out[pca_id].copy(info);
+        PointList* points = out.writable_points(pca_id);
+        std::vector<float> current_obj = pca_points[pca_id-1];
+
+        for (unsigned int j = 0; j < points_N; j++)
+        {
+            Vector3& v = (*points)[j];
+            v.x = current_obj[3 * j];
+            v.y = current_obj[3 * j + 1];
+            v.z = current_obj[3 * j + 2];
+        }
+
+        if (pretty_show) {
+            out[pca_id].matrix.translate((mid_obj_id - pca_id)*d_x, 0, 0);
+        }
+    }
 }
 
 void PCAGeo::knobs(Knob_Callback f)
 {
-	Bool_knob(f, &pretty_show, "show PCA components in a row", "Pretty Show");
-	Float_knob(f, &d_x, "delta x", "Delta X");
-	SetRange(f, 0, 10);
-	Int_knob(f, &N_pca, "minimum number of PCA to be shown", "N_PCA");
-	SetRange(f, 0, N);
-	Float_knob(f, &var_threshold, "variance threshold", "Variance Threshold");
-	SetRange(f, 0, 1);
+    Bool_knob(f, &pretty_show, "show PCA components in a row", "Pretty Show");
+    Float_knob(f, &d_x, "delta x", "Delta X");
+    SetRange(f, 0, 10);
+    Int_knob(f, &min_pca_N, "minimum number of PCA to be shown", "N_PCA");
+    SetRange(f, 0, max_inputs_N);
+    Float_knob(f, &var_threshold, "variance threshold", "Variance Threshold");
+    SetRange(f, 0, 1);
 }
 
-static Op* build(Node* node)
-{
-	return new PCAGeo(node);
+namespace { 
+    Op* build(Node* node)
+    {
+        return new PCAGeo(node);
+    }
 }
 
 const Op::Description PCAGeo::description(CLASS, build);

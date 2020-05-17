@@ -4,40 +4,40 @@
 #include "DDImage/Scene.h"
 #include "DDImage/Knobs.h"
 #include "DDImage/ViewFrustum.h"
-
 #include <cassert>
 
-using namespace DD::Image;
 
-static const char* const CLASS = "CombineMultPCA";
-static const char* const HELP = "Combine geometries of two objects";
-
-
-class CombineMultPCA : public GeoOp
+class CombineMultPCA : public DD::Image::GeoOp
 {
-	static const int N = 10;
-	float _param[N];
+public:
+    static const Description description;
+
+    const char* Class() const override;
+
+    const char* node_help() const override;
+
+    CombineMultPCA(Node* node);
+
+    int minimum_inputs() const override;
+
+    int maximum_inputs() const override;
+
+    void get_geometry_hash() override;
+
+    void geometry_engine(DD::Image::Scene& scene, DD::Image::GeometryList& out) override;
+    
+    void knobs(DD::Image::Knob_Callback f) override;
+
+    ~CombineMultPCA();
 
 protected:
-	void _validate(bool for_real) override;
+    void _validate(bool for_real) override;
 
-public:
-	static const Description description;
-	const char* Class() const override;
-	const char* node_help() const override;
+private:
+    int pca_N;
+    unsigned int points_n;
+    int obj_n;
+    float* params;
 
-	CombineMultPCA(Node* node);
-
-	int minimum_inputs() const override;
-	int maximum_inputs() const override;
-
-	void get_geometry_hash() override;
-
-	void geometry_engine(Scene& scene, GeometryList& out) override;
-
-	static void make_means(std::vector<Vector3>& mean_vec, GeometryList& geo_list);
-
-	void combine_pca(std::vector<Vector3>& mean_vec, GeometryList& out, GeometryList& in);
-	
-	void knobs(Knob_Callback f) override;
+    void combine_pca(DD::Image::GeometryList& out, const DD::Image::GeometryList& in) const;
 };
